@@ -56,6 +56,9 @@ def startup_event():
     url_manager = URLListManager()
     prompt_guardian_app.state.url_manager = url_manager
     asyncio.create_task(url_manager.periodic_update_url_list())
+    # Initialize the class instance and store it in the app state
+    class_instance = get_class_instance()
+    prompt_guardian_app.state.class_instance = class_instance
 
 
 # Mount static directory
@@ -89,7 +92,7 @@ async def add_url(url_add_request: URLAddRequest, request: Request):
 
 
 @prompt_guardian_app.post("/check-prompt")  # Note the change to a POST request
-async def check_url(url_check_request: PromptCheckRequest, request: Request, class_instance: Any = Depends(get_class_instance)):
+async def check_url(url_check_request: PromptCheckRequest, request: Request):
     prompt = url_check_request.text
     urls = extract_urls(prompt)
     url_manager = request.app.state.url_manager
@@ -107,8 +110,11 @@ async def check_url(url_check_request: PromptCheckRequest, request: Request, cla
         prompt_status = "No Prompt Injection Detected"
 
     verdict = ""
+    class_instance = request.app.state.class_instance
     if class_instance:
         pdf_buffer = class_instance.create_pdf_from_string(prompt)
         verdict = class_instance.send_pdf_to_server(pdf_buffer)
+
+    print(prompt_status + ", " + url_status + ", " + verdict)
 
     return {"status": prompt_status + ", " + url_status + ", " + verdict}
