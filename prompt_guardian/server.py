@@ -1,4 +1,6 @@
 import asyncio
+import os
+
 from fastapi import FastAPI, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -32,7 +34,10 @@ def startup_event():
 
 
 # Mount static directory
-prompt_guardian_app.mount("/static", StaticFiles(directory="static"), name="static")
+# Inside your FastAPI app, when setting up the static directory
+base_dir = os.path.dirname(os.path.abspath(__file__))
+static_dir = os.path.join(base_dir, 'static')
+prompt_guardian_app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 @prompt_guardian_app.get("/healthz")
