@@ -76,7 +76,7 @@ async def check_url(url_check_request: PromptCheckRequest, request: Request):
         url_status = "No Malware URL(s)"
 
     response = openai_prompt_guard.generate_response(prompt=prompt)
-    if response == "this is a prompt injection attack":
+    if response.lower() == "this is a prompt injection attack":
         prompt_status = "Prompt Injection Attack"
     else:
         prompt_status = "No Prompt Injection Detected"
