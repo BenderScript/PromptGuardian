@@ -42,6 +42,12 @@ body {
     color: black; /* Change to a visible color */
     margin-bottom: 20px; /* Adjust this value as needed */
     resize: both; /* Enables resizing both horizontally and vertically */
+    animation: fadeIn 1s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .result-container::before {

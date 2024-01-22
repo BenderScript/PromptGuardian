@@ -12,9 +12,9 @@
             resultDiv.innerHTML = data.status; // or any other formatted data
         }
         document.addEventListener('DOMContentLoaded', (event) => {
-            document.getElementById('check_url_button').addEventListener('click', async (event) => {
+            document.getElementById('check_prompt_button').addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevents the default button click behavior
-
+                document.getElementById('result_div').innerHTML = '';
                 const text = document.getElementById('url_text').value; // Get the input text
                 const response = await fetch('/check-prompt', {
                     method: 'POST',
@@ -53,7 +53,7 @@
         <h1 id="url_guardian">Prompt Guardian</h1>
         <label for="url_text">Enter prompt:</label> <!-- Label for the first textarea -->
         <textarea id="url_text" class="large-input"></textarea>
-        <button id="check_url_button">Check</button>
+        <button id="check_prompt_button">Check</button>
 
         <label for="result_div">Result:</label> <!-- Label for the second textarea -->
         <div id="result_div" class="result-container">
