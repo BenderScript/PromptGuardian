@@ -1,0 +1,68 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Guardian</title>
+    <link rel="stylesheet" href="static/style.css">
+    <script>
+        function updateResult(data) {
+            const resultDiv = document.getElementById('result_div');
+            resultDiv.innerHTML = data.status; // or any other formatted data
+        }
+        document.addEventListener('DOMContentLoaded', (event) => {
+            document.getElementById('check_url_button').addEventListener('click', async (event) => {
+                event.preventDefault(); // Prevents the default button click behavior
+
+                const text = document.getElementById('url_text').value; // Get the input text
+                const response = await fetch('/check-prompt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+
+                const result = await response.json(); // Parse the JSON response
+
+                updateResult(result);
+            });
+        });
+        async function addURL(event) {
+            event.preventDefault(); // Prevents the default form submission behavior
+
+            const text = document.getElementById('add_url_text').value; // Get the input text
+            const response = await fetch('/add-url', { // Make a POST request to your FastAPI endpoint
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ text: text })
+            });
+
+            const result = await response.json(); // Parse the JSON response
+
+            // Update the page with the response
+            document.getElementById('result_div').innerText = result.status;
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1 id="url_guardian">Prompt Guardian</h1>
+        <label for="url_text">Enter prompt:</label> <!-- Label for the first textarea -->
+        <textarea id="url_text" class="large-input"></textarea>
+        <button id="check_url_button">Check</button>
+
+        <label for="result_div">Result:</label> <!-- Label for the second textarea -->
+        <div id="result_div" class="result-container">
+            <!-- Content will be added here -->
+        </div>
+
+        <label for="add_url_text">Enter URL:</label> <!-- Label for the second textarea -->
+        <textarea id="add_url_text" class="large-input"></textarea>
+        <button id="add_url_button" onclick="addURL(event)">Add URL</button>
+    </div>
+</body>
+</html>
