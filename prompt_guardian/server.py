@@ -1,6 +1,9 @@
 import asyncio
 import os
+from importlib import import_module
+from typing import Any
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -9,6 +12,8 @@ from pydantic import BaseModel
 
 from prompt_guardian.dependecies import URLListManager
 from prompt_guardian.helpers import extract_urls
+
+load_dotenv()
 
 
 class PromptCheckRequest(BaseModel):
@@ -22,6 +27,26 @@ class URLAddRequest(BaseModel):
 openai_prompt_guard = OpenAIPromptGuard()
 
 prompt_guardian_app = FastAPI()
+
+
+def get_class_instance():
+    module_path = os.getenv("MODULE_PATH")
+    class_name = os.getenv("CLASS_NAME")
+
+    # Only proceed if both environment variables are set
+    if module_path is not None and class_name is not None:
+        try:
+            module = import_module(module_path)
+            class_ = getattr(module, class_name)
+            return class_(env_path="../.env")
+        except AttributeError:
+            # Failing silently, you might want to log this for debugging purposes
+            pass
+        except ImportError:
+            # Failing silently, you might want to log this for debugging purposes
+            pass
+    # Return None or a default behavior if the environment variables are not set
+    return None
 
 
 # Dependency
@@ -64,7 +89,7 @@ async def add_url(url_add_request: URLAddRequest, request: Request):
 
 
 @prompt_guardian_app.post("/check-prompt")  # Note the change to a POST request
-async def check_url(url_check_request: PromptCheckRequest, request: Request):
+async def check_url(url_check_request: PromptCheckRequest, request: Request, class_instance: Any = Depends(get_class_instance)):
     prompt = url_check_request.text
     urls = extract_urls(prompt)
     url_manager = request.app.state.url_manager
@@ -81,6 +106,9 @@ async def check_url(url_check_request: PromptCheckRequest, request: Request):
     else:
         prompt_status = "No Prompt Injection Detected"
 
-    return {"status": prompt_status + ", " + url_status}
+    verdict = ""
+    if class_instance:
+        pdf_buffer = class_instance.create_pdf_from_string(prompt)
+        verdict = class_instance.send_pdf_to_server(pdf_buffer)
 
-
+    return {"status": prompt_status + ", " + url_status + ", " + verdict}
