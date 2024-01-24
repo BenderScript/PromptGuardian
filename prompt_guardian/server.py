@@ -80,7 +80,9 @@ def health_check():
 # Serve HTML file from the root route
 @prompt_guardian_app.get("/", response_class=HTMLResponse)
 async def read_root():
-    with open("index.html", "r") as file:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    index_file_path = os.path.join(base_dir, "index.html")
+    with open(index_file_path, "r") as file:
         return HTMLResponse(content=file.read())
 
 
