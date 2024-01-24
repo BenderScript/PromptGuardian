@@ -25,6 +25,10 @@ class URLAddRequest(BaseModel):
 
 
 openai_prompt_guard = OpenAIPromptGuard()
+prompt_detection_enabled = True
+if openai_prompt_guard.client is None:
+    prompt_detection_enabled = False
+    print("No OpenAI API key found, prompt injection detection is disabled will not work")
 
 prompt_guardian_app = FastAPI()
 
@@ -105,11 +109,14 @@ async def check_url(prompt_check_request: PromptCheckRequest, request: Request):
     else:
         url_status = "No Malware URL(s)"
 
-    response = openai_prompt_guard.generate_response(prompt=prompt)
-    if response.lower() == "this is a prompt injection attack":
-        prompt_status = "Prompt Injection Attack"
+    if prompt_detection_enabled is False:
+        prompt_status = "Prompt Injection Detection disabled"
     else:
-        prompt_status = "No Prompt Injection Detected"
+        response = openai_prompt_guard.generate_response(prompt=prompt)
+        if response.lower() == "this is a prompt injection attack":
+            prompt_status = "Prompt Injection Attack Detected"
+        else:
+            prompt_status = "No Prompt Injection Detected"
 
     verdict = ""
     class_instance = request.app.state.class_instance
