@@ -17,6 +17,7 @@ load_dotenv()
 
 class PromptCheckRequest(BaseModel):
     text: str
+    extractedUrls: list[str]  # Add this line to include the list of URLs
 
 
 class URLAddRequest(BaseModel):
@@ -91,11 +92,13 @@ async def add_url(url_add_request: URLAddRequest, request: Request):
 
 
 @prompt_guardian_app.post("/check-prompt")  # Note the change to a POST request
-async def check_url(url_check_request: PromptCheckRequest, request: Request):
-    prompt = url_check_request.text
-    urls = extract_urls(prompt)
+async def check_url(prompt_check_request: PromptCheckRequest, request: Request):
+    prompt = prompt_check_request.text
+    urls = prompt_check_request.extractedUrls
+
+    urls_py = extract_urls(prompt)
     url_manager = request.app.state.url_manager
-    for url in urls:
+    for url in urls_py:
         if url_manager.check_url(url):
             url_status = "Malware URL(s)"
             break
@@ -110,10 +113,16 @@ async def check_url(url_check_request: PromptCheckRequest, request: Request):
 
     verdict = ""
     class_instance = request.app.state.class_instance
+    threats = []
     if class_instance:
         pdf_buffer = class_instance.create_pdf_from_string(prompt)
-        verdict = class_instance.send_pdf_to_server(pdf_buffer)
+        verdict, threats = class_instance.send_pdf_buf_to_server(pdf_buffer)
 
-    print(prompt_status + ", " + url_status + ", " + verdict)
+    if len(threats) == 0:
+        threats = "No Threats Detected"
+    else:
+        threats = ", ".join(threats)
 
-    return {"status": prompt_status + ", " + url_status + ", " + verdict}
+    print(prompt_status + ", " + url_status + ", Threats: " + threats)
+
+    return {"status": prompt_status + "\nURL(s) Verdict: " + url_status + "\n Threats: " + threats}

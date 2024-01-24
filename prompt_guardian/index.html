@@ -7,21 +7,52 @@
     <title>Prompt Guardian</title>
     <link rel="stylesheet" href="static/style.css">
     <script>
+
+        function extractUrls(text) {
+            text = text.replace(/\n/g, " "); // Replace newline characters with spaces
+            const re_weburl = new RegExp(
+                "(?:(?:(?:https?|ftp):)?\\/\\/)" +  // Protocol
+                "(?:\\S+(?::\\S*)?@)?" +  // User:pass authentication (optional)
+                "(" +
+                    // IP address (simplified pattern)
+                    "\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b" +
+                    "|" +
+                    // Hostnames
+                    "(?:(?:[a-z0-9\\u00a1-\\uffff]" +
+                    "[a-z0-9\\u00a1-\\uffff_-]{0,62})?" +
+                    "[a-z0-9\\u00a1-\\uffff]\\.)+" +
+                    "(?:[a-z\\u00a1-\\uffff]{2,}\\.?)" +
+                ")" +
+                "(?::\\d{2,5})?" + // Port (optional)
+                "(?:[/?#]\\S*)?", // Path (optional)
+                "gi"  // Flags
+            );
+
+            const urls = text.match(re_weburl);
+            console.log(urls)
+            return urls || []; // Return the matches or an empty array if no matches
+        }
         function updateResult(data) {
             const resultDiv = document.getElementById('result_div');
-            resultDiv.innerHTML = data.status; // or any other formatted data
+            // Replace newline characters with <br> tags for HTML rendering
+            const formattedStatus = data.status.replace(/\n/g, '<br><br>');
+            resultDiv.innerHTML = formattedStatus;
         }
+
         document.addEventListener('DOMContentLoaded', (event) => {
             document.getElementById('check_prompt_button').addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevents the default button click behavior
                 document.getElementById('result_div').innerHTML = '';
                 const text = document.getElementById('url_text').value; // Get the input text
+
+                const urls = extractUrls(text); // Extract URLs from the text
+
                 const response = await fetch('/check-prompt', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ text: text })
+                    body: JSON.stringify({ text: text, extractedUrls: urls }) // Send both text and URLs
                 });
 
                 const result = await response.json(); // Parse the JSON response
