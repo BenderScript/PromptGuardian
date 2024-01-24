@@ -37,3 +37,11 @@ If Everything goes well, you should see the following page at http://127.0.0.1:9
 
 
 ![Landing page](images/landing.png)
+
+## Testing
+
+<video width="640" height="480" controls>
+  <source src="images/prompt_guardian_demo.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
