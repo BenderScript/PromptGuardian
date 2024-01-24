@@ -7,6 +7,9 @@
     <title>Prompt Guardian</title>
     <link rel="stylesheet" href="static/style.css">
     <script>
+        function showSpinner() {
+            document.getElementById('result_div').innerHTML = '<div class="loader"></div>';
+        }
 
         function extractUrls(text) {
             text = text.replace(/\n/g, " "); // Replace newline characters with spaces
@@ -35,29 +38,40 @@
         function updateResult(data) {
             const resultDiv = document.getElementById('result_div');
             // Replace newline characters with <br> tags for HTML rendering
-            const formattedStatus = data.status.replace(/\n/g, '<br><br>');
-            resultDiv.innerHTML = formattedStatus;
+            resultDiv.innerHTML = data.status.replace(/\n/g, '<br>');
         }
 
         document.addEventListener('DOMContentLoaded', (event) => {
             document.getElementById('check_prompt_button').addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevents the default button click behavior
-                document.getElementById('result_div').innerHTML = '';
+                // document.getElementById('result_div').innerHTML = '';
+                showSpinner();
                 const text = document.getElementById('url_text').value; // Get the input text
 
                 const urls = extractUrls(text); // Extract URLs from the text
+                try {
+                    const response = await fetch('/check-prompt', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ text: text, extractedUrls: urls })
+                    });
 
-                const response = await fetch('/check-prompt', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ text: text, extractedUrls: urls }) // Send both text and URLs
-                });
+                    if (!response.ok) {
+                        // Handle HTTP errors e.g., response status 404, 500, etc.
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
 
-                const result = await response.json(); // Parse the JSON response
+                    const data = await response.json();
+                    updateResult(data);
 
-                updateResult(result);
+                } catch (error) {
+                    // Handle network errors and exceptions thrown from the above block
+                    console.error('There was a problem with the fetch operation:', error.message);
+                    // You can also update your UI to inform the user of the error
+                    document.getElementById('result_div').innerHTML = 'Error: ' + error.message;
+                }
             });
         });
         async function addURL(event) {
