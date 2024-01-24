@@ -3,4 +3,4 @@ fastapi~=0.109.0
 requests~=2.31.0
 pydantic~=2.5.2
 python-dotenv~=1.0.0
-prompt-injection-bench~=0.1.2
+prompt-injection-bench~=0.1.3
