@@ -126,6 +126,8 @@ async def check_url(prompt_check_request: PromptCheckRequest, request: Request):
     if class_instance:
         pdf_buffer = class_instance.create_pdf_from_string(prompt)
         verdict, threats = class_instance.send_pdf_buf_to_server(pdf_buffer)
+    else:
+        threats = "DLP Disabled"
 
     if len(threats) == 0:
         threats = "No Threats Detected"
