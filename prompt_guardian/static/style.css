@@ -38,11 +38,12 @@ body {
     line-height: 1em; /* Line height to match character height */
     display: flex; /* Flexbox layout */
     align-items: center; /* Center content vertically */
-    justify-content: center; /* Center content horizontally */
+    justify-content: flex-start;; /* Center content horizontally */
     color: black; /* Change to a visible color */
     margin-bottom: 20px; /* Adjust this value as needed */
     resize: both; /* Enables resizing both horizontally and vertically */
     animation: fadeIn 1s;
+    text-align: left;
 }
 
 @keyframes fadeIn {
