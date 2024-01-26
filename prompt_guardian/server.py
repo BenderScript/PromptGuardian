@@ -104,52 +104,57 @@ async def add_url(url_add_request: URLAddRequest, request: Request):
     return {"status": "URL added to the list"}
 
 
-@prompt_guardian_app.post("/check-prompt")  # Note the change to a POST request
-async def check_url(prompt_check_request: PromptCheckRequest, request: Request):
-    prompt = prompt_check_request.text
-    urls = prompt_check_request.extractedUrls
-
+def check_url_status(prompt: str, url_manager):
     urls_py = extract_urls(prompt)
-    url_manager = request.app.state.url_manager
     for url in urls_py:
         if url_manager.check_url(url):
-            url_status = "Malware URL(s)"
-            break
-    else:
-        url_status = "No Malware URL(s)"
+            return "Malware URL(s)"
+    return "No Malware URL(s)"
 
+
+def check_openai_prompt_status(prompt: str):
     if openai_prompt_detection_enabled is False:
-        openai_prompt_status = "OpenAI Prompt Injection Detection disabled"
-    else:
-        response = openai_prompt_guard.generate_response(prompt=prompt)
-        if response.lower() == "this is a prompt injection attack":
-            openai_prompt_status = "Prompt Injection Attack Detected"
-        else:
-            openai_prompt_status = "No Prompt Injection Detected"
+        return "OpenAI Prompt Injection Detection disabled"
+    response = openai_prompt_guard.generate_response(prompt=prompt)
+    if response.lower() == "this is a prompt injection attack":
+        return "Prompt Injection Attack Detected"
+    return "No Prompt Injection Detected"
 
+
+def check_gemini_prompt_status(prompt: str):
     if gemini_prompt_detection_enabled is False:
-        gemini_prompt_status = "Gemini Prompt Injection Detection disabled"
-    else:
-        response = gemini_prompt_guard.generate_response(prompt=prompt)
-        if response.lower() == "this is a prompt injection attack":
-            gemini_prompt_status = "Prompt Injection Attack Detected"
-        else:
-            gemini_prompt_status = "No Prompt Injection Detected"
+        return "Gemini Prompt Injection Detection disabled"
+    response = gemini_prompt_guard.generate_response(prompt=prompt)
+    if response.lower() == "this is a prompt injection attack":
+        return "Prompt Injection Attack Detected"
+    return "No Prompt Injection Detected"
 
-    class_instance = request.app.state.class_instance
+
+def check_threats(prompt: str, class_instance):
     if class_instance:
         pdf_buffer = class_instance.create_pdf_from_string(prompt)
         verdict, threats = class_instance.send_pdf_buf_to_server(pdf_buffer)
-    else:
-        threats = "DLP Disabled"
+        if len(threats) != 0:
+            return ", ".join(threats)
+    return "No Threats Detected or DLP Disabled"
 
-    if len(threats) == 0:
-        threats = "No Threats Detected"
-    else:
-        threats = ", ".join(threats)
 
-    print(f"Prompt Injection:\n  OpenAI: {openai_prompt_status}\n  Gemini: {gemini_prompt_status}\n"
-                      f"\nURL(s) Verdict: {url_status}\n\n Threats: {threats}")
+@prompt_guardian_app.post("/check-prompt")
+async def check_url(prompt_check_request: PromptCheckRequest, request: Request):
+    prompt = prompt_check_request.text
+    url_manager = request.app.state.url_manager
 
-    return {"status": f"Prompt Injection:\n  OpenAI: {openai_prompt_status}\n  Gemini: {gemini_prompt_status}\n"
-                      f"\nURL(s) Verdict: {url_status}\n\n Threats: {threats}"}
+    url_status = check_url_status(prompt, url_manager)
+    openai_prompt_status = check_openai_prompt_status(prompt)
+    gemini_prompt_status = check_gemini_prompt_status(prompt)
+    threats = check_threats(prompt, request.app.state.class_instance)
+    json_response = {
+        "prompt_injection": {
+            "openai": openai_prompt_status,
+            "gemini": gemini_prompt_status
+        },
+        "url_verdict": url_status,
+        "threats": threats
+    }
+    print(json_response)
+    return json_response
