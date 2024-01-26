@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 
 import requests
 
@@ -23,10 +24,18 @@ class URLListManager:
     def update_url_set(self):
         abuse_list_url = "https://urlhaus.abuse.ch/downloads/text_online/"  # URL of the abuse list
         local_file_path = "abuse_list.txt"
+        pattern = r'https?://([^/:]+)'
 
         if self.download_and_check_url_file(abuse_list_url, local_file_path):
             with open(local_file_path, "r") as file:
-                self.url_set = file.read().strip().split('\n')
+                for line in file:
+                    line = line.strip()
+                    match = re.search(pattern, line)
+                    if match:
+                        location = match.group(1)
+                        # Remove port if present
+                        location = re.sub(r':\d+', '', location)
+                        self.url_set.add(location)
         else:
             raise Exception("Failed to download the abuse list")
 

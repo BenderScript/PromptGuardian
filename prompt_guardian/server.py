@@ -3,7 +3,7 @@ import os
 from importlib import import_module
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from prompt_injection_bench.gemini_prompt_guard import GeminiPromptGuard
@@ -25,19 +25,16 @@ class URLAddRequest(BaseModel):
     url: str
 
 
-openai_prompt_guard = OpenAIPromptGuard()
-openai_prompt_detection_enabled = True
-if openai_prompt_guard.client is None:
-    openai_prompt_detection_enabled = False
-    print("No OpenAI API key found, OpenAI prompt injection detection is disabled")
+def mount_static_directory(app: FastAPI):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    static_dir = os.path.join(base_dir, 'static')
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-gemini_prompt_guard = GeminiPromptGuard()
-gemini_prompt_detection_enabled = True
-if openai_prompt_guard.client is None:
-    gemini_prompt_detection_enabled = False
-    print("No Google API key found, gemini prompt injection detection is disabled")
 
 prompt_guardian_app = FastAPI()
+
+# Call the function to mount the static directory
+mount_static_directory(prompt_guardian_app)
 
 
 def get_class_instance():
@@ -63,20 +60,29 @@ def get_class_instance():
 # Dependency
 
 @prompt_guardian_app.on_event("startup")
-def startup_event():
-    url_manager = URLListManager()
-    prompt_guardian_app.state.url_manager = url_manager
-    asyncio.create_task(url_manager.periodic_update_url_list())
+async def startup_event():
     # Initialize the class instance and store it in the app state
     class_instance = get_class_instance()
     prompt_guardian_app.state.class_instance = class_instance
 
+    prompt_guardian_app.state.openai_prompt_detection_enabled = True
+    prompt_guardian_app.state.openai_prompt_guard = OpenAIPromptGuard()
+    if prompt_guardian_app.state.openai_prompt_guard.client is None:
+        prompt_guardian_app.state.openai_prompt_detection_enabled = False
+        print("No OpenAI API key found, OpenAI prompt injection detection is disabled")
 
-# Mount static directory
-# Inside your FastAPI app, when setting up the static directory
-base_dir = os.path.dirname(os.path.abspath(__file__))
-static_dir = os.path.join(base_dir, 'static')
-prompt_guardian_app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    prompt_guardian_app.state.gemini_prompt_detection_enabled = True
+    prompt_guardian_app.state.gemini_prompt_guard = GeminiPromptGuard()
+    if prompt_guardian_app.state.gemini_prompt_guard.chat is None:
+        prompt_guardian_app.state.gemini_prompt_detection_enabled = False
+        print("No Google API key found, gemini prompt injection detection is disabled")
+
+
+@prompt_guardian_app.on_event("startup")
+async def start_infinite_task():
+    url_manager: URLListManager = URLListManager()
+    prompt_guardian_app.state.url_manager = url_manager
+    asyncio.create_task(url_manager.periodic_update_url_list())
 
 
 @prompt_guardian_app.get("/healthz")
@@ -105,29 +111,33 @@ async def add_url(url_add_request: URLAddRequest, request: Request):
 
 
 def check_url_status(prompt: str, url_manager):
-    urls_py = extract_urls(prompt)
-    for url in urls_py:
-        if url_manager.check_url(url):
-            return "Malware URL(s)"
-    return "No Malware URL(s)"
+    return extract_urls(prompt)
 
 
-def check_openai_prompt_status(prompt: str):
-    if openai_prompt_detection_enabled is False:
+def check_openai_prompt_status(prompt: str, app: FastAPI):
+    if app.state.openai_prompt_detection_enabled is False:
         return "OpenAI Prompt Injection Detection disabled"
-    response = openai_prompt_guard.generate_response(prompt=prompt)
-    if response.lower() == "this is a prompt injection attack":
-        return "Prompt Injection Attack Detected"
-    return "No Prompt Injection Detected"
+    else:
+        response = app.state.openai_prompt_guard.generate_response(prompt=prompt)
+        if response is None:
+            app.state.openai_prompt_detection_enabled = False
+        elif response.lower() == "this is a prompt injection attack":
+            return "Prompt Injection Attack Detected"
+        else:
+            return "No Prompt Injection Detected"
 
 
-def check_gemini_prompt_status(prompt: str):
-    if gemini_prompt_detection_enabled is False:
+def check_gemini_prompt_status(prompt: str, app: FastAPI):
+    if app.state.gemini_prompt_detection_enabled is False:
         return "Gemini Prompt Injection Detection disabled"
-    response = gemini_prompt_guard.generate_response(prompt=prompt)
-    if response.lower() == "this is a prompt injection attack":
-        return "Prompt Injection Attack Detected"
-    return "No Prompt Injection Detected"
+    else:
+        response = app.state.gemini_prompt_guard.generate_response(prompt=prompt)
+        if response is None:
+            app.state.gemini_prompt_detection_enabled = False
+        elif response.lower() == "this is a prompt injection attack":
+            return "Prompt Injection Attack Detected"
+        else:
+            return "No Prompt Injection Detected"
 
 
 def check_threats(prompt: str, class_instance):
@@ -145,8 +155,8 @@ async def check_prompt(prompt_check_request: PromptCheckRequest, request: Reques
     url_manager = request.app.state.url_manager
 
     url_status = check_url_status(prompt, url_manager)
-    openai_prompt_status = check_openai_prompt_status(prompt)
-    gemini_prompt_status = check_gemini_prompt_status(prompt)
+    openai_prompt_status = check_openai_prompt_status(prompt, prompt_guardian_app)
+    gemini_prompt_status = check_gemini_prompt_status(prompt, prompt_guardian_app)
     threats = check_threats(prompt, request.app.state.class_instance)
     json_response = {
         "prompt_injection": {

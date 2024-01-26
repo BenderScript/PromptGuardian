@@ -1,7 +1,9 @@
 import unittest
+import pytest
 import httpx
+import pytest_asyncio
 
-from prompt_guardian.server import prompt_guardian_app
+from prompt_guardian.server import prompt_guardian_app, startup_event
 
 
 class TestFastAPIApp(unittest.TestCase):
@@ -44,5 +46,20 @@ class TestFastAPIApp(unittest.TestCase):
         self.assertEqual(response.json(), {"result": "URL is not in the abuse list"})
 
 
-if __name__ == "__main__":
-    unittest.main()
+@pytest.mark.asyncio
+async def test_check_prompt_with_malware_url(async_client):
+    # This test assumes that the URL 'http://malware.com' is recognized as malicious
+    response = await async_client.post("/check-prompt",
+                                       json={"text": "This is a test", "extractedUrls": ["http://malware.com"]})
+    assert response.status_code == 200
+    assert "Malware URL(s)" in response.json()["status"]
+
+
+@pytest.mark.asyncio
+async def test_check_prompt_without_malware_url(async_client):
+    # This test assumes that the URL 'http://safe.com' is not recognized as malicious
+    response = await async_client.post("/check-prompt", json={"text": "This is a test", "extractedUrls": ["http://safe.com"]})
+    assert response.status_code == 200
+    assert "No Malware URL(s)" in response.json()["status"]
+
+# Add more tests to cover different scenarios, including prompt injection detection, etc.

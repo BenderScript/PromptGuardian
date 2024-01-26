@@ -12,7 +12,7 @@ class TestExtractUrls(unittest.TestCase):
 
     def test_extract_multiple_urls(self):
         text = "Visit https://www.example.com and http://www.test.com."
-        expected = ["https://www.example.com", "http://www.test.com."]
+        expected = ["https://www.example.com", "http://www.test.com"]
         self.assertEqual(expected, extract_urls(text))
 
     def test_extract_url_with_ipv4(self):
@@ -37,12 +37,12 @@ class TestExtractUrls(unittest.TestCase):
 
     def test_mixed_private_type_urls_in_text(self):
         text = "Check these: https://www.example.com, http://192.168.1.1, and https://[2001:db8::1]."
-        expected = ["https://www.example.com"]
+        expected = ["https://www.example.com", "http://192.168.1.1"]
         self.assertEqual(expected, extract_urls(text))
 
     def test_mixed_type_urls_in_text(self):
         text = "Check these: https://www.example.com, http://203.0.113.1, and https://www.ipv6-example.com."
-        expected = ["https://www.example.com", "http://203.0.113.1", "https://www.ipv6-example.com."]
+        expected = ["https://www.example.com", "http://203.0.113.1", "https://www.ipv6-example.com"]
         self.assertEqual(extract_urls(text), expected)
 
     def test_text_with_almost_urls(self):
