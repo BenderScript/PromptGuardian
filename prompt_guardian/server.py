@@ -140,7 +140,7 @@ def check_threats(prompt: str, class_instance):
 
 
 @prompt_guardian_app.post("/check-prompt")
-async def check_url(prompt_check_request: PromptCheckRequest, request: Request):
+async def check_prompt(prompt_check_request: PromptCheckRequest, request: Request):
     prompt = prompt_check_request.text
     url_manager = request.app.state.url_manager
 

@@ -30,7 +30,7 @@ class TestFastAPIApp(unittest.TestCase):
         await self.add_remove_url(test_url, add=True)
 
         # Test the URL
-        response = await self.client.post("/check-url", json={"url": test_url})
+        response = await self.client.post("/check-prompt", json={"url": test_url})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"result": "URL is in the abuse list"})
 
@@ -39,7 +39,7 @@ class TestFastAPIApp(unittest.TestCase):
 
     async def test_check_url_not_in_abuse_list(self):
         test_url = "http://example.com/safe"  # Replace with a URL not in your abuse list
-        response = await self.client.post("/check-url", json={"url": test_url})
+        response = await self.client.post("/check-prompt", json={"url": test_url})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"result": "URL is not in the abuse list"})
 
