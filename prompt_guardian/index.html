@@ -37,8 +37,11 @@
         }
         function updateResult(data) {
             const resultDiv = document.getElementById('result_div');
+            let jsonString = JSON.stringify(data, null, 2);
+// Replace newline characters with <br> and spaces with &nbsp;
+            let formattedString = jsonString.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
             // Replace newline characters with <br> tags for HTML rendering
-            resultDiv.innerHTML = data.status.replace(/\n/g, '<br>');
+            resultDiv.innerHTML = formattedString
         }
 
         document.addEventListener('DOMContentLoaded', (event) => {

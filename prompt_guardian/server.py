@@ -111,7 +111,10 @@ async def add_url(url_add_request: URLAddRequest, request: Request):
 
 
 def check_url_status(prompt: str, url_manager):
-    return extract_urls(prompt)
+    for u in extract_urls(prompt):
+        if url_manager.check_url(u):
+            return "URL(s) is in the abuse list"
+    return "No malware URL(s) detected"
 
 
 def check_openai_prompt_status(prompt: str, app: FastAPI):
