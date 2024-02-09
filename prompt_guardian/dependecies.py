@@ -54,3 +54,6 @@ class URLListManager:
 
     def add_url(self, url):
         self.url_set.add(url)
+
+    def get_urls(self, max_urls: int = 10):
+        return list(self.url_set)[:max_urls]

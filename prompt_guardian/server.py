@@ -1,13 +1,16 @@
 import asyncio
 import os
+import re
+from http import HTTPStatus
 from importlib import import_module
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from prompt_injection_bench.gemini_prompt_guard import GeminiPromptGuard
-from prompt_injection_bench.openai_prompt_guard import OpenAIPromptGuard
+from prompt_injection_bench.gemini_async_prompt_guard import GeminiAsyncPromptGuard
+from prompt_injection_bench.openai_async_prompt_guard import OpenAIAsyncPromptGuard
+from prompt_injection_bench.server import OpenAIState, GeminiState
 from pydantic import BaseModel
 
 from prompt_guardian.dependecies import URLListManager
@@ -65,16 +68,14 @@ async def startup_event():
     class_instance = get_class_instance()
     prompt_guardian_app.state.class_instance = class_instance
 
-    prompt_guardian_app.state.openai_prompt_detection_enabled = True
-    prompt_guardian_app.state.openai_prompt_guard = OpenAIPromptGuard()
-    if prompt_guardian_app.state.openai_prompt_guard.client is None:
-        prompt_guardian_app.state.openai_prompt_detection_enabled = False
+    prompt_guardian_app.state.openai = OpenAIState(prompt_guard=OpenAIAsyncPromptGuard(),
+                                                   injection_attack=0, not_injection_attack=0, missed_attack=0)
+    if prompt_guardian_app.state.openai.prompt_guard.enabled is False:
         print("No OpenAI API key found, OpenAI prompt injection detection is disabled")
 
-    prompt_guardian_app.state.gemini_prompt_detection_enabled = True
-    prompt_guardian_app.state.gemini_prompt_guard = GeminiPromptGuard()
-    if prompt_guardian_app.state.gemini_prompt_guard.chat is None:
-        prompt_guardian_app.state.gemini_prompt_detection_enabled = False
+    prompt_guardian_app.state.gemini = GeminiState(prompt_guard=GeminiAsyncPromptGuard(),
+                                                   injection_attack=0, not_injection_attack=0, missed_attack=0)
+    if prompt_guardian_app.state.gemini.prompt_guard.enabled is False:
         print("No Google API key found, gemini prompt injection detection is disabled")
 
 
@@ -110,6 +111,12 @@ async def add_url(url_add_request: URLAddRequest, request: Request):
     return {"status": "URL added to the list"}
 
 
+@prompt_guardian_app.get("/urls")
+async def add_url(request: Request):
+    url_manager = request.app.state.url_manager # Assuming you have a method `add_url` in URLListManager
+    return {"urls": url_manager.get_urls()}
+
+
 def check_url_status(prompt: str, url_manager):
     for u in extract_urls(prompt):
         if url_manager.check_url(u):
@@ -117,39 +124,61 @@ def check_url_status(prompt: str, url_manager):
     return "No malware URL(s) detected"
 
 
-def check_openai_prompt_status(prompt: str, app: FastAPI):
-    if app.state.openai_prompt_detection_enabled is False:
+async def check_openai_prompt_status(prompt: str, app: FastAPI):
+    if app.state.openai.prompt_guard.enabled is False:
         return "OpenAI Prompt Injection Detection disabled"
     else:
-        response = app.state.openai_prompt_guard.generate_response(prompt=prompt)
-        if response is None:
-            app.state.openai_prompt_detection_enabled = False
-        elif response.lower() == "this is a prompt injection attack":
-            return "Prompt Injection Attack Detected"
-        else:
+        status_code, response = await app.state.openai.prompt_guard.generate_response(prompt=prompt)
+        if status_code == HTTPStatus.OK.value:
+            pattern_true = r'\btrue\b\.?'
+            pattern_false = r'\bfalse\b\.?'
+
+            matches = re.findall(pattern_true, response.lower())
+            if len(matches) > 0:
+                app.state.openai.injection_attack += 1
+                return "Prompt Injection Attack Detected"
+            elif len(re.findall(pattern_false, response)) > 0:
+                app.state.openai.not_injection_attack += 1
+            else:
+                app.state.openai.missed_attack += 1
             return "No Prompt Injection Detected"
+        else:
+            return "No connection to OpenAI Server"
 
 
-def check_gemini_prompt_status(prompt: str, app: FastAPI):
-    if app.state.gemini_prompt_detection_enabled is False:
+async def check_gemini_prompt_status(prompt: str, app: FastAPI):
+    if app.state.gemini.prompt_guard.enabled is False:
         return "Gemini Prompt Injection Detection disabled"
     else:
-        response = app.state.gemini_prompt_guard.generate_response(prompt=prompt)
-        if response is None:
-            app.state.gemini_prompt_detection_enabled = False
-        elif response.lower() == "this is a prompt injection attack":
-            return "Prompt Injection Attack Detected"
-        else:
+        status_code, response = await app.state.gemini.prompt_guard.generate_response(prompt=prompt)
+        if status_code == HTTPStatus.OK.value:
+            pattern_true = r'\btrue\b\.?'
+            pattern_false = r'\bfalse\b\.?'
+
+            matches = re.findall(pattern_true, response.lower())
+            if len(matches) > 0:
+                app.state.gemini.injection_attack += 1
+                return "Prompt Injection Attack Detected"
+            elif len(re.findall(pattern_false, response)) > 0:
+                app.state.gemini.not_injection_attack += 1
+            else:
+                app.state.gemini.missed_attack += 1
             return "No Prompt Injection Detected"
+        else:
+            return "No connection to Gemini Server"
 
 
 def check_threats(prompt: str, class_instance):
     if class_instance:
         pdf_buffer = class_instance.create_pdf_from_string(prompt)
-        verdict, threats = class_instance.send_pdf_buf_to_server(pdf_buffer)
-        if len(threats) != 0:
-            return ", ".join(threats)
-    return "No Threats Detected or DLP Disabled"
+        verdict, threats, status_code = class_instance.send_pdf_buf_to_server(pdf_buffer)
+        if status_code == HTTPStatus.OK.value:
+            if len(threats) != 0:
+                return ", ".join(threats)
+            else:
+                return "No Threats Detected"
+        else:
+            return "No connection to DLP Server"
 
 
 @prompt_guardian_app.post("/check-prompt")
@@ -158,8 +187,8 @@ async def check_prompt(prompt_check_request: PromptCheckRequest, request: Reques
     url_manager = request.app.state.url_manager
 
     url_status = check_url_status(prompt, url_manager)
-    openai_prompt_status = check_openai_prompt_status(prompt, prompt_guardian_app)
-    gemini_prompt_status = check_gemini_prompt_status(prompt, prompt_guardian_app)
+    openai_prompt_status = await check_openai_prompt_status(prompt, prompt_guardian_app)
+    gemini_prompt_status = await check_gemini_prompt_status(prompt, prompt_guardian_app)
     threats = check_threats(prompt, request.app.state.class_instance)
     json_response = {
         "prompt_injection": {

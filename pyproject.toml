@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "prompt_guardian"
-version = "0.1.4"
+version = "0.1.5"
 description = ""
 authors = ["BenderScript <6779302+BenderScript@users.noreply.github.com>"]
 license = "Apache 2.0"
@@ -9,11 +9,11 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 httpx = "^0.25.2"
-fastapi = "^0.109.0"
+fastapi = "^0.109.2"
 requests = "^2.31.0"
 pydantic = "^2.5.2"
 python-dotenv = "^1.0.0"
-prompt-injection-bench = "^0.1.4"
+prompt-injection-bench = "^0.1.9"
 pytest = "^7.4.4"
 uvicorn = "^0.25.0"
 
