@@ -7,8 +7,10 @@ import requests
 
 class URLListManager:
     def __init__(self):
+        self.enabled = False
         self.url_set = set()
-        self.update_url_set()
+        if self.update_url_set():
+            self.enabled = True
 
     def download_and_check_url_file(self, url_file_url, local_file_path):
         try:
@@ -36,8 +38,10 @@ class URLListManager:
                         # Remove port if present
                         location = re.sub(r':\d+', '', location)
                         self.url_set.add(location)
+                return True
         else:
-            raise Exception("Failed to download the abuse list")
+            print("Failed to download the abuse list")
+            return False
 
     async def periodic_update_url_list(self):
         while True:
@@ -47,7 +51,7 @@ class URLListManager:
             except Exception as e:
                 logging.error(f"Failed to update URL list: {e}")
 
-            await asyncio.sleep(86400)
+            await asyncio.sleep(7 * 24 * 60 * 60) # 1 week
 
     def check_url(self, url):
         return url in self.url_set

@@ -1,6 +1,6 @@
 import unittest
 
-from prompt_guardian.helpers import extract_urls
+from prompt_guardian.helpers import extract_urls, extract_domains
 
 
 class TestExtractUrls(unittest.TestCase):
@@ -34,6 +34,11 @@ class TestExtractUrls(unittest.TestCase):
         text = "For more info, visit https://example.com/page or contact us at info@example.com."
         expected = ['https://example.com/page', 'atinfo@example.com']
         self.assertEqual(expected, extract_urls(text),)
+
+    def test_url_mixed_with_domain(self):
+        text = "172-234-120-102.ip.linodeusercontent.com  https://www.example.com bruiserbodies.com"
+        expected = ["172-234-120-102.ip.linodeusercontent.com", "www.example.com", "bruiserbodies.com"]
+        self.assertEqual(expected, extract_domains(text))
 
     def test_mixed_private_type_urls_in_text(self):
         text = "Check these: https://www.example.com, http://192.168.1.1, and https://[2001:db8::1]."
