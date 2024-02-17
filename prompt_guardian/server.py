@@ -20,13 +20,18 @@ from prompt_guardian.llm_state import OpenAIState, GeminiState, AzureJailbreakSt
 load_dotenv()
 
 
-class PromptCheckRequest(BaseModel):
+class CheckPromptRequest(BaseModel):
     text: str
     extractedUrls: list[str]  # Add this line to include the list of URLs
 
 
 class URLAddRequest(BaseModel):
     url: str
+
+class CheckPromptResult(BaseModel):
+    prompt_injection: dict[str, str]
+    url_verdict: str
+    threats: str
 
 
 def mount_static_directory(app: FastAPI):
@@ -169,6 +174,7 @@ async def check_prompt_status(prompt: str, state: LLMState):
             print("Received an unexpected status code:", status_code)
             raise ValueError("Received an unexpected status code:", status_code)
 
+
 def check_threats(prompt: str, class_instance):
     if class_instance:
         pdf_buffer = class_instance.create_pdf_from_string(prompt)
@@ -183,7 +189,7 @@ def check_threats(prompt: str, class_instance):
 
 
 @prompt_guardian_app.post("/check-prompt")
-async def check_prompt(prompt_check_request: PromptCheckRequest, request: Request):
+async def check_prompt(prompt_check_request: CheckPromptRequest, request: Request) -> CheckPromptResult:
     prompt = prompt_check_request.text
     url_manager = request.app.state.url_manager
 
@@ -191,21 +197,11 @@ async def check_prompt(prompt_check_request: PromptCheckRequest, request: Reques
         url_status = check_url_status(prompt, url_manager)
     else:
         url_status = "URL checking is disabled"
-    # openai_prompt_status = await check_openai_prompt_status(prompt, prompt_guardian_app)
-    # gemini_prompt_status = await check_gemini_prompt_status(prompt, prompt_guardian_app)
-    # azure_prompt_status = await check_azure_prompt_status(prompt, prompt_guardian_app)
     openai_prompt_status = await check_prompt_status(prompt, prompt_guardian_app.state.openai)
     gemini_prompt_status = await check_prompt_status(prompt, prompt_guardian_app.state.gemini)
     azure_prompt_status = await check_prompt_status(prompt, prompt_guardian_app.state.azure)
     threats = check_threats(prompt, request.app.state.class_instance)
-    json_response = {
-        "prompt_injection": {
-            "openai": openai_prompt_status,
-            "gemini": gemini_prompt_status,
-            "azure": azure_prompt_status
-        },
-        "url_verdict": url_status,
-        "threats": threats
-    }
-    print(json_response)
-    return json_response
+    result = CheckPromptResult(prompt_injection={"openai": openai_prompt_status, "gemini": gemini_prompt_status,
+                                                 "azure": azure_prompt_status}, url_verdict=url_status, threats=threats)
+    print(result)
+    return result
