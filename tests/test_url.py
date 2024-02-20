@@ -1,6 +1,4 @@
 import unittest
-import httpx
-
 from prompt_guardian.server import prompt_guardian_app, startup_event
 from fastapi.testclient import TestClient
 

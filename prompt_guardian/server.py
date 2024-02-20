@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from prompt_injection_bench.azure_openai_async_prompt_guard import AzureOpenAIAsyncPromptGuard
 from prompt_injection_bench.gemini_async_prompt_guard import GeminiAsyncPromptGuard
 from prompt_injection_bench.openai_async_prompt_guard import OpenAIAsyncPromptGuard
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from prompt_guardian.dependecies import URLListManager
 from prompt_guardian.helpers import extract_urls, extract_domains
@@ -21,17 +21,24 @@ load_dotenv()
 
 
 class CheckPromptRequest(BaseModel):
-    text: str
-    extractedUrls: list[str]  # Add this line to include the list of URLs
+    text: str = Field(description="Prompt or text to be checked")
+    extractedUrls: list[str] = Field(description="Unused")
 
 
 class URLAddRequest(BaseModel):
-    url: str
+    url: str = Field(description="URL to be added to the DB")
+
+
+class LLMResult(BaseModel):
+    azure: str = Field(description="Azure prompt injection detection result")
+    gemini: str = Field(description="Gemini prompt injection detection result")
+    openai: str = Field(description="OpenAI prompt injection detection result")
+
 
 class CheckPromptResult(BaseModel):
-    prompt_injection: dict[str, str]
-    url_verdict: str
-    threats: str
+    prompt_injection: LLMResult = Field(description="Prompt injection results for each LLM")
+    url_verdict: str = Field(description="URL verdict")
+    threats: str = Field(description="DLP threat results")
 
 
 def mount_static_directory(app: FastAPI):
@@ -186,6 +193,8 @@ def check_threats(prompt: str, class_instance):
                 return "No Threats Detected"
         else:
             return "No connection to DLP Server"
+    else:
+        return "DLP Scanning is disabled"
 
 
 @prompt_guardian_app.post("/check-prompt")
@@ -201,7 +210,7 @@ async def check_prompt(prompt_check_request: CheckPromptRequest, request: Reques
     gemini_prompt_status = await check_prompt_status(prompt, prompt_guardian_app.state.gemini)
     azure_prompt_status = await check_prompt_status(prompt, prompt_guardian_app.state.azure)
     threats = check_threats(prompt, request.app.state.class_instance)
-    result = CheckPromptResult(prompt_injection={"openai": openai_prompt_status, "gemini": gemini_prompt_status,
-                                                 "azure": azure_prompt_status}, url_verdict=url_status, threats=threats)
-    print(result)
+    llm_result = LLMResult(azure=azure_prompt_status, gemini=gemini_prompt_status, openai=openai_prompt_status)
+    result = CheckPromptResult(prompt_injection=llm_result, url_verdict=url_status, threats=threats)
+    # print(result)
     return result

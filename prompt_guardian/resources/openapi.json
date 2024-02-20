@@ -1,0 +1,275 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FastAPI",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/healthz": {
+      "get": {
+        "summary": "Health Check",
+        "operationId": "health_check_healthz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Read Root",
+        "operationId": "read_root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/add-url": {
+      "post": {
+        "summary": "Add Url",
+        "operationId": "add_url_add_url_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/URLAddRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/urls": {
+      "get": {
+        "summary": "Add Url",
+        "operationId": "add_url_urls_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/check-prompt": {
+      "post": {
+        "summary": "Check Prompt",
+        "operationId": "check_prompt_check_prompt_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckPromptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckPromptResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CheckPromptRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "Prompt or text to be checked"
+          },
+          "extractedUrls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Extractedurls",
+            "description": "Unused"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "extractedUrls"
+        ],
+        "title": "CheckPromptRequest"
+      },
+      "CheckPromptResult": {
+        "properties": {
+          "prompt_injection": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LLMResult"
+              }
+            ],
+            "description": "Prompt injection results for each LLM"
+          },
+          "url_verdict": {
+            "type": "string",
+            "title": "Url Verdict",
+            "description": "URL verdict"
+          },
+          "threats": {
+            "type": "string",
+            "title": "Threats",
+            "description": "DLP threat results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "prompt_injection",
+          "url_verdict",
+          "threats"
+        ],
+        "title": "CheckPromptResult"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LLMResult": {
+        "properties": {
+          "azure": {
+            "type": "string",
+            "title": "Azure",
+            "description": "Azure prompt injection detection result"
+          },
+          "gemini": {
+            "type": "string",
+            "title": "Gemini",
+            "description": "Gemini prompt injection detection result"
+          },
+          "openai": {
+            "type": "string",
+            "title": "Openai",
+            "description": "OpenAI prompt injection detection result"
+          }
+        },
+        "type": "object",
+        "required": [
+          "azure",
+          "gemini",
+          "openai"
+        ],
+        "title": "LLMResult"
+      },
+      "URLAddRequest": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "URL to be added to the DB"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "URLAddRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
