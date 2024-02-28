@@ -24,6 +24,12 @@ class CheckPromptRequest(BaseModel):
     text: str = Field(description="Prompt or text to be checked")
     extractedUrls: list[str] = Field(description="Unused")
 
+    check_url: bool = True  # Default to true, perform URL check
+    check_openai: bool = True  # Default to true, perform OpenAI check
+    check_gemini: bool = True  # Default to true, perform Gemini check
+    check_azure: bool = True  # Default to true, perform Azure check
+    check_threats: bool = True  # Default to true, perform threat check
+
 
 class URLAddRequest(BaseModel):
     url: str = Field(description="URL to be added to the DB")
@@ -202,14 +208,32 @@ async def check_prompt(prompt_check_request: CheckPromptRequest, request: Reques
     prompt = prompt_check_request.text
     url_manager = request.app.state.url_manager
 
-    if url_manager.enabled:
-        url_status = check_url_status(prompt, url_manager)
-    else:
-        url_status = "URL checking is disabled"
-    openai_prompt_status = await check_prompt_status(prompt, prompt_guardian_app.state.openai)
-    gemini_prompt_status = await check_prompt_status(prompt, prompt_guardian_app.state.gemini)
-    azure_prompt_status = await check_prompt_status(prompt, prompt_guardian_app.state.azure)
-    threats = check_threats(prompt, request.app.state.class_instance)
+    # Initialize status variables to None as the default values
+    url_status = ""
+    openai_prompt_status = ""
+    gemini_prompt_status = ""
+    azure_prompt_status = ""
+    threats = ""
+
+    if prompt_check_request.check_url:
+        if url_manager.enabled:
+            print("checking URL")
+            url_status = check_url_status(prompt, url_manager)
+        else:
+            url_status = "URL checking is disabled"
+
+    if prompt_check_request.check_openai:
+        openai_prompt_status = await check_prompt_status(prompt, prompt_guardian_app.state.openai)
+
+    if prompt_check_request.check_gemini:
+        gemini_prompt_status = await check_prompt_status(prompt, prompt_guardian_app.state.gemini)
+
+    if prompt_check_request.check_azure:
+        azure_prompt_status = await check_prompt_status(prompt, prompt_guardian_app.state.azure)
+
+    if prompt_check_request.check_threats:
+        threats = check_threats(prompt, request.app.state.class_instance)
+
     llm_result = LLMResult(azure=azure_prompt_status, gemini=gemini_prompt_status, openai=openai_prompt_status)
     result = CheckPromptResult(prompt_injection=llm_result, url_verdict=url_status, threats=threats)
     # print(result)
