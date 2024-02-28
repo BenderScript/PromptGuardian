@@ -208,12 +208,12 @@ async def check_prompt(prompt_check_request: CheckPromptRequest, request: Reques
     prompt = prompt_check_request.text
     url_manager = request.app.state.url_manager
 
-    # Initialize status variables to None as the default values
-    url_status = ""
-    openai_prompt_status = ""
-    gemini_prompt_status = ""
-    azure_prompt_status = ""
-    threats = ""
+    # default statuses - these will be returned to the client when the functionalities are not selected in the request
+    url_status = "Prompt check for malware URLs is disabled per client request"
+    openai_prompt_status = "Prompt injection detection with OpenAI is disabled per client request"
+    gemini_prompt_status = "Prompt injection detection with Gemini is disabled per client request"
+    azure_prompt_status = "Prompt injection detection with Azure is disabled per client request"
+    threats = "Prompt check for DLP wit Umbrella is disabled per client request"
 
     if prompt_check_request.check_url:
         if url_manager.enabled:
