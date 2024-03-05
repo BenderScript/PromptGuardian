@@ -213,7 +213,7 @@ async def check_prompt(prompt_check_request: CheckPromptRequest, request: Reques
     openai_prompt_status = "Prompt injection detection with OpenAI is disabled per client request"
     gemini_prompt_status = "Prompt injection detection with Gemini is disabled per client request"
     azure_prompt_status = "Prompt injection detection with Azure is disabled per client request"
-    threats = "Prompt check for DLP wit Umbrella is disabled per client request"
+    threats = "Prompt check for DLP with Umbrella is disabled per client request"
 
     if prompt_check_request.check_url:
         if url_manager.enabled:
