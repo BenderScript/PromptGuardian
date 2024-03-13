@@ -6,8 +6,6 @@ from fastapi.testclient import TestClient
 
 from prompt_guardian.server import prompt_guardian_app
 
-load_dotenv("../.env")
-
 
 class TestLLMEmoji(unittest.IsolatedAsyncioTestCase):
 
@@ -60,7 +58,7 @@ class TestLLMEmoji(unittest.IsolatedAsyncioTestCase):
                             exp_result = {'prompt_injection': {'azure': 'Azure Prompt Injection Detection disabled',
                                                                'gemini': 'Gemini Prompt Injection Detection disabled',
                                                                'openai': 'Prompt Injection Attack Detected'},
-                                          'threats': 'Terrorism', 'url_verdict': 'No malware URL(s) detected'}
+                                          'threats': 'Domestic Terrorism', 'url_verdict': 'No malware URL(s) detected'}
 
                             for key in exp_result:
                                 self.assertIn(key, actual_result)

@@ -17,7 +17,7 @@ from prompt_guardian.dependecies import URLListManager
 from prompt_guardian.helpers import extract_urls, extract_domains
 from prompt_guardian.llm_state import OpenAIState, GeminiState, AzureJailbreakState, LLMState
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 class CheckPromptRequest(BaseModel):
