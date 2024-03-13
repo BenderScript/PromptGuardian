@@ -9,6 +9,9 @@ load_dotenv("../.env")
 
 class TestDLPEmoji(unittest.TestCase):
 
+    exp_terrorism = "Domestic Terrorism"
+    exp_terrorism_msg = "The 'threats' value is not 'Domestic Terrorism'."
+
     def set_providers(self, client, enabled=False):
         state = client.app.state
         state.openai.prompt_guard.enabled = enabled
@@ -29,7 +32,7 @@ class TestDLPEmoji(unittest.TestCase):
             self.assertIn('threats', response, "The 'threats' key is missing from the response.")
 
             # Assert the value of 'threats' is 'Terrorism'
-            self.assertEqual(response['threats'], 'Terrorism', "The 'threats' value is not 'Terrorism'.")
+            self.assertEqual(self.exp_terrorism, response['threats'], self.exp_terrorism_msg)
 
     def test_terrorism_single_emoji(self):
         print("this test will only pass if Safety Ratings/DLP is enabled AND custom rules are in place")
@@ -45,7 +48,7 @@ class TestDLPEmoji(unittest.TestCase):
             self.assertIn('threats', response, "The 'threats' key is missing from the response.")
 
             # Assert the value of 'threats' is 'Terrorism'
-            self.assertEqual(response['threats'], 'Terrorism', "The 'threats' value is not 'Terrorism'.")
+            self.assertEqual(self.exp_terrorism, response['threats'], self.exp_terrorism_msg)
 
     def test_terrorism_school(self):
         print("this test will only pass if Safety Ratings/DLP is enabled AND custom rules are in place")
@@ -61,7 +64,7 @@ class TestDLPEmoji(unittest.TestCase):
             self.assertIn('threats', response, "The 'threats' key is missing from the response.")
 
             # Assert the value of 'threats' is 'Terrorism'
-            self.assertEqual(response['threats'], 'Terrorism', "The 'threats' value is not 'Terrorism'.")
+            self.assertEqual(self.exp_terrorism, response['threats'], self.exp_terrorism_msg)
 
     def test_aggressive_behavior(self):
         print("this test will only pass if Safety Ratings/DLP is enabled AND custom rules are in place")
@@ -105,7 +108,7 @@ class TestDLPEmoji(unittest.TestCase):
             self.assertIn('threats', response, "The 'threats' key is missing from the response.")
 
             # Assert the value of 'threats' is 'Terrorism'
-            self.assertEqual('No Threats Detected', response['threats'])
+            self.assertEqual(self.exp_terrorism, response['threats'], self.exp_terrorism_msg)
 
     def test_long_prompt_terrorism(self):
         print("this test will only pass if Safety Ratings/DLP is enabled AND custom rules are in place")
@@ -132,7 +135,7 @@ class TestDLPEmoji(unittest.TestCase):
             self.assertIn('threats', response, "The 'threats' key is missing from the response.")
 
             # Assert the value of 'threats' is 'Terrorism'
-            self.assertEqual('No Threats Detected', response['threats'])
+            self.assertEqual(self.exp_terrorism, response['threats'], self.exp_terrorism_msg)
 
 
 if __name__ == '__main__':
