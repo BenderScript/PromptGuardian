@@ -110,6 +110,7 @@ class TestDLPEmoji(unittest.TestCase):
             # Assert the value of 'threats' is 'Terrorism'
             self.assertEqual(self.exp_terrorism, response['threats'], self.exp_terrorism_msg)
 
+    @unittest.skip("Skipping until Umbrella issue solved")
     def test_long_prompt_terrorism(self):
         print("this test will only pass if Safety Ratings/DLP is enabled AND custom rules are in place")
         story = """

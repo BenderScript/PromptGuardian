@@ -54,9 +54,10 @@ class TestURLs(unittest.IsolatedAsyncioTestCase):
             self.set_providers(client)
             response = client.get("/urls")
             url_dict = response.json()
-            url = url_dict.get("urls")[0]
-            response = client.post("/check-prompt"
-                                   , json={"text": url,
-                                           "extractedUrls": [""]})
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual("URL(s) is in the abuse list", response.json().get("url_verdict"), f"URL: {url}")
+            urls = url_dict.get("urls")
+            for url in urls:
+                response = client.post("/check-prompt"
+                                       , json={"text": url,
+                                               "extractedUrls": [""]})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual("URL(s) is in the abuse list", response.json().get("url_verdict"), f"URL: {url}")
