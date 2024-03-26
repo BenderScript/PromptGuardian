@@ -13,7 +13,7 @@ from prompt_injection_bench.gemini_async_prompt_guard import GeminiAsyncPromptGu
 from prompt_injection_bench.openai_async_prompt_guard import OpenAIAsyncPromptGuard
 from pydantic import BaseModel, Field
 
-from prompt_guardian.dependecies import URLListManager
+from prompt_guardian.dependecies import URLManagerWithURLHaus
 from prompt_guardian.helpers import extract_urls, extract_domains
 from prompt_guardian.llm_state import OpenAIState, GeminiState, AzureJailbreakState, LLMState
 
@@ -101,9 +101,9 @@ def init_llms():
 
 
 def init_urldb():
-    url_manager: URLListManager = URLListManager()
+    url_manager: URLManagerWithURLHaus = URLManagerWithURLHaus()
     prompt_guardian_app.state.url_manager = url_manager
-    asyncio.create_task(url_manager.periodic_update_url_list())
+    asyncio.create_task(url_manager.try_update_url_set_with_retries())
 
 
 @prompt_guardian_app.on_event("startup")
@@ -144,7 +144,7 @@ async def add_url(url_add_request: URLAddRequest, request: Request):
 @prompt_guardian_app.get("/urls")
 async def add_url(request: Request):
     url_manager = request.app.state.url_manager  # Assuming you have a method `add_url` in URLListManager
-    return {"urls": url_manager.get_urls()}
+    return {"urls": url_manager.get_random_urls()}
 
 
 def check_url_status(prompt: str, url_manager):
