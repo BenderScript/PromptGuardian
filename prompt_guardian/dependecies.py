@@ -6,8 +6,11 @@ import random
 import re
 import tempfile
 import zipfile
+from urllib.parse import urlparse
 
 import requests
+
+from prompt_guardian.models import URLHausRequest
 
 
 class URLManagerWithURLHaus:
@@ -152,15 +155,30 @@ class URLManagerWithURLHaus:
                         break
             await asyncio.sleep(24 * 60 * 60)  # 1 day
 
+    def handle_threat(self, threat_response):
+        threat = threat_response.get("threat")
+
+        if threat is None:
+            return []
+        elif not isinstance(threat, list):
+            return [threat]
+        else:
+            return threat
+
+    def is_valid_url(self, url):
+        parsed_url = urlparse(url)
+        return parsed_url.netloc
 
     def check_url(self, url):
         return self.url_info_dict.get(url, {})
 
-    def add_url(self, url):
-        self.url_info_dict[url] = {"url": url, "url_status": "online"}
+    def add_url(self, urlRequest: URLHausRequest):
+        if netloc := self.is_valid_url(urlRequest.url):
+            self.url_info_dict[netloc] = urlRequest.dict()
+        else:
+            self.url_info_dict[urlRequest.url] = urlRequest.dict()
 
     def get_random_urls(self, max_urls: int = 10):
         urls = list(self.url_info_dict.keys())  # or list(url_dict.values()) if URLs are values
         random_urls = random.sample(urls, min(len(urls), max_urls))  # Ensure not to exceed the list size
         return random_urls
-
